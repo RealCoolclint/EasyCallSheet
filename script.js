@@ -75,8 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
      * - titre : Name (titre de la ligne Monday)
      * - format : FORMATS 2026
      * - date : Date de tournage (format YYYY-MM-DD)
+     * - heure : Heure PAT (format HH:mm)
      * - responsable : Auteurs
-     * - tel : Téléphone du responsable (optionnel)
+     * - telephone : Téléphone du responsable
      * - lieu : Lieu (optionnel)
      */
     function loadFromUrlParams() {
@@ -145,7 +146,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (e) {
                 console.warn('Impossible de parser la date:', date);
-            // Responsable
+            }
+        }
+        
+        // Heure PAT
+        const heure = urlParams.get('heure');
+        if (heure) {
+            document.getElementById('patTime').value = decodeURIComponent(heure);
+        }
+        
+        // Responsable
         const responsable = urlParams.get('responsable');
         if (responsable) {
             const decodedResponsable = decodeURIComponent(responsable);
@@ -167,14 +177,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('managerPhone').value = existingManager.phone;
             }
         }
+        
+        // Lieu
+        const lieu = urlParams.get('lieu');
+        if (lieu && lieu.trim() !== '') {
+            const decodedLieu = decodeURIComponent(lieu);
+            document.getElementById('isExterior').checked = true;
             document.getElementById('addressField').style.display = 'block';
             document.getElementById('exteriorAddress').value = decodedLieu;
-        }
-        
-        // Heure PAT
-        const heure = urlParams.get('heure');
-        if (heure) {
-            document.getElementById('patTime').value = decodeURIComponent(heure);
         }
     }
     
