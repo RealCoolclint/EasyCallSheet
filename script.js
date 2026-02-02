@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const newManagerPhoneInput = document.getElementById('newManagerPhone');
     const managersList = document.getElementById('managersList');
     
+    // Variable pour suivre l'édition en cours
+    let editingManagerIndex = null;
+    
     // Précharger l'image du logo
     const logoImg = new Image();
     logoImg.src = 'logo_etudiant.png';
@@ -204,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
     }
     
-    // Ajouter un responsable
+    // Ajouter ou modifier un responsable
     function addManager(name, phone) {
         if (!name || !phone) {
             alert('Veuillez remplir tous les champs');
@@ -213,6 +216,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const managers = getManagers();
         
+        // Mode édition
+        if (editingManagerIndex !== null) {
+            managers[editingManagerIndex] = { name: name.trim(), phone: phone.trim() };
+            managers.sort((a, b) => a.name.localeCompare(b.name));
+            saveManagers(managers);
+            refreshManagersList();
+            
+            // Réinitialiser le mode édition
+            editingManagerIndex = null;
+            addManagerButton.textContent = 'Ajouter';
+            newManagerNameInput.value = '';
+            newManagerPhoneInput.value = '';
+            return;
+        }
+        
+        // Mode ajout normal
         // Vérifier si le responsable existe déjà
         const existingIndex = managers.findIndex(m => m.name.toLowerCase() === name.toLowerCase());
         if (existingIndex !== -1) {
@@ -233,6 +252,31 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshManagersList();
         
         // Vider les champs
+        newManagerNameInput.value = '';
+        newManagerPhoneInput.value = '';
+    }
+    
+    // Éditer un responsable
+    function editManager(index) {
+        const managers = getManagers();
+        const manager = managers[index];
+        
+        // Remplir les champs avec les infos actuelles
+        newManagerNameInput.value = manager.name;
+        newManagerPhoneInput.value = manager.phone;
+        
+        // Mettre en mode édition
+        editingManagerIndex = index;
+        addManagerButton.textContent = 'Sauvegarder';
+        
+        // Scroller vers le formulaire
+        document.querySelector('.add-manager-form').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Annuler l'édition
+    function cancelEdit() {
+        editingManagerIndex = null;
+        addManagerButton.textContent = 'Ajouter';
         newManagerNameInput.value = '';
         newManagerPhoneInput.value = '';
     }
@@ -263,9 +307,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span class="manager-info">
                     <strong>${manager.name}</strong> - ${manager.phone}
                 </span>
-                <button type="button" class="delete-button" data-index="${index}">Supprimer</button>
+                <div class="manager-actions">
+                    <button type="button" class="edit-button" data-index="${index}">✏️ Modifier</button>
+                    <button type="button" class="delete-button" data-index="${index}">Supprimer</button>
+                </div>
             `;
             managersList.appendChild(li);
+        });
+        
+        // Ajouter les événements de modification
+        managersList.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                editManager(index);
+            });
         });
         
         // Ajouter les événements de suppression
@@ -357,11 +412,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     modalClose.addEventListener('click', function() {
         managersModal.style.display = 'none';
+        cancelEdit();
     });
     
     window.addEventListener('click', function(event) {
         if (event.target === managersModal) {
             managersModal.style.display = 'none';
+            cancelEdit();
         }
     });
     
