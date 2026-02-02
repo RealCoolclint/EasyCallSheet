@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyCallSheets Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>EasyCallSheets</h1>
+        
+        <div class="app-container">
+            <!-- Formulaire à gauche -->
+            <div class="form-section">
+                <form id="callSheetForm">
+                    <div class="form-group">
+                        <h2>Format et Date</h2>
+                        <div class="form-item">
+                            <label for="formatType">Format</label>
+                            <select id="formatType" name="formatType">
+                                <option value="L'interview">L'interview</option>
+                                <option value="L'interro">L'interro</option>
+                                <option value="C'est quoi">C'est quoi</option>
+                                <option value="Audrey T'explique">Audrey T'explique</option>
+                            </select>
+                        </div>
+                        <div class="form-item">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" name="date">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h2>Informations</h2>
+                        <div class="form-item">
+                            <label for="guestName">Nom de l'invité</label>
+                            <input type="text" id="guestName" name="guestName">
+                        </div>
+                        <div class="form-item">
+                            <label for="schoolName">École</label>
+                            <input type="text" id="schoolName" name="schoolName">
+                        </div>
+                        <div class="form-item">
+                            <label for="patTime">Heure PAT</label>
+                            <input type="time" id="patTime" name="patTime">
+                        </div>
+                        <div class="form-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="customSchedule" name="customSchedule">
+                                <span>Aménager les horaires</span>
+                            </label>
+                        </div>
+                        <div id="customScheduleFields" style="display: none;">
+                            <div class="form-item">
+                                <label for="customInstall">Installation</label>
+                                <input type="time" id="customInstall" name="customInstall">
+                            </div>
+                            <div class="form-item">
+                                <label for="customHmcStart">HMC Début</label>
+                                <input type="time" id="customHmcStart" name="customHmcStart">
+                            </div>
+                            <div class="form-item">
+                                <label for="customHmcEnd">HMC Fin</label>
+                                <input type="time" id="customHmcEnd" name="customHmcEnd">
+                            </div>
+                            <div class="form-item">
+                                <label for="customRdv">Heure RDV</label>
+                                <input type="time" id="customRdv" name="customRdv">
+                            </div>
+                            <div class="form-item">
+                                <label for="customEnd">Fin de tournage</label>
+                                <input type="time" id="customEnd" name="customEnd">
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="isExterior" name="isExterior">
+                                <span>Tournage en extérieur</span>
+                            </label>
+                        </div>
+                        <div class="form-item" id="addressField" style="display: none;">
+                            <label for="exteriorAddress">Adresse du tournage</label>
+                            <textarea id="exteriorAddress" name="exteriorAddress" rows="2" placeholder="Adresse complète du lieu de tournage"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <h2>Contact</h2>
+                        <div class="form-item">
+                            <label for="managerName">Responsable</label>
+                            <div class="autocomplete-wrapper">
+                                <input type="text" id="managerName" name="managerName" autocomplete="off">
+                                <div id="managerSuggestions" class="autocomplete-suggestions"></div>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <label for="managerPhone">Téléphone</label>
+                            <input type="text" id="managerPhone" name="managerPhone">
+                        </div>
+                        <div class="form-item">
+                            <button type="button" id="manageManagersButton" class="secondary-button">Gérer les responsables</button>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" id="previewButton">Aperçu</button>
+                        <button type="button" id="generatePdfButton">Générer PDF</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Aperçu à droite -->
+            <div class="preview-section" id="previewSection">
+                <div id="previewContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de gestion des responsables -->
+    <div id="managersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gérer les responsables de projet</h2>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="add-manager-form">
+                    <h3>Ajouter un responsable</h3>
+                    <div class="form-item">
+                        <label for="newManagerName">Nom</label>
+                        <input type="text" id="newManagerName" placeholder="Nom du responsable">
+                    </div>
+                    <div class="form-item">
+                        <label for="newManagerPhone">Téléphone</label>
+                        <input type="text" id="newManagerPhone" placeholder="Numéro de téléphone">
+                    </div>
+                    <button type="button" id="addManagerButton" class="primary-button">Ajouter</button>
+                </div>
+                <div class="import-csv-form">
+                    <h3>Importer depuis un fichier CSV</h3>
+                    <div class="form-item">
+                        <label for="csvFile">Fichier CSV</label>
+                        <input type="file" id="csvFile" accept=".csv" />
+                        <small>Format attendu : nom,téléphone (une ligne par responsable)</small>
+                    </div>
+                    <button type="button" id="importCsvButton" class="primary-button">Importer</button>
+                </div>
+                <div class="managers-list">
+                    <h3>Responsables sauvegardés</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button type="button" id="exportCsvButton" class="secondary-button">Exporter en CSV</button>
+                    </div>
+                    <ul id="managersList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 
