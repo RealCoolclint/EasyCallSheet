@@ -602,14 +602,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fonction pour générer le texte du déroulé
     function generateScheduleText(schedule, patTime, guestName, isExterior) {
-        const locationNote = isExterior ? '(sur place)' : '(à L\'Etudiant)';
-        
         return `
-            <p><strong>${schedule.install || '08:30'}</strong> : Installation du matériel ${locationNote}</p>
-            <p><strong>${schedule.rdv || patTime}</strong> : Arrivée de ${guestName || 'l\'invité'}</p>
-            <p style="margin-left: 80px;">- Accueil / installation / passage en loges</p>
-            <p><strong>${schedule.hmc || schedule.rdv || patTime}</strong> : HMC (Habillage Maquillage Coiffure)</p>
-            <p><strong>${patTime}</strong> : Début de tournage (entre 15 et 30 minutes)</p>
+            <p><strong>${schedule.install || '08:30'}</strong> : Installation</p>
+            <p><strong>${schedule.rdv || patTime}</strong> : Arrivée ${guestName || '[Nom de l\'invité]'}</p>
+            <p><strong>${schedule.hmc || schedule.rdv || patTime}</strong> : HMC (Habillage Maquillage Coiffure) - Au besoin</p>
+            <p><strong>${patTime}</strong> : Début de tournage</p>
             <p><strong>${schedule.end || '11:30'}</strong> : Fin de tournage et rangement</p>
         `.trim();
     }
