@@ -567,8 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isCustom && customTimes.install) {
             return {
                 install: customTimes.install,
-                hmcStart: customTimes.hmcStart,
-                hmcEnd: customTimes.hmcEnd,
+                hmc: customTimes.hmc,
                 rdv: customTimes.rdv,
                 end: customTimes.end
             };
@@ -577,34 +576,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Horaires par défaut basés sur l'heure PAT
         const [hours, minutes] = patTime.split(':').map(Number);
         
-        // Installation : PAT - 1h30
+        // Installation : PAT - 30 min
         const installDate = new Date();
         installDate.setHours(hours, minutes);
-        installDate.setMinutes(installDate.getMinutes() - 90);
+        installDate.setMinutes(installDate.getMinutes() - 30);
         const install = `${String(installDate.getHours()).padStart(2, '0')}:${String(installDate.getMinutes()).padStart(2, '0')}`;
         
-        // HMC Début : PAT - 30min
-        const hmcStartDate = new Date();
-        hmcStartDate.setHours(hours, minutes);
-        hmcStartDate.setMinutes(hmcStartDate.getMinutes() - 30);
-        const hmcStart = `${String(hmcStartDate.getHours()).padStart(2, '0')}:${String(hmcStartDate.getMinutes()).padStart(2, '0')}`;
+        // RDV : PAT - 15 min
+        const rdvDate = new Date();
+        rdvDate.setHours(hours, minutes);
+        rdvDate.setMinutes(rdvDate.getMinutes() - 15);
+        const rdv = `${String(rdvDate.getHours()).padStart(2, '0')}:${String(rdvDate.getMinutes()).padStart(2, '0')}`;
         
-        // HMC Fin : PAT + 15min
-        const hmcEndDate = new Date();
-        hmcEndDate.setHours(hours, minutes);
-        hmcEndDate.setMinutes(hmcEndDate.getMinutes() + 15);
-        const hmcEnd = `${String(hmcEndDate.getHours()).padStart(2, '0')}:${String(hmcEndDate.getMinutes()).padStart(2, '0')}`;
+        // HMC : même heure que RDV
+        const hmc = rdv;
         
-        // RDV : PAT
-        const rdv = patTime;
-        
-        // Fin : PAT + 2h30
+        // Fin : PAT + 1h30
         const endDate = new Date();
         endDate.setHours(hours, minutes);
-        endDate.setMinutes(endDate.getMinutes() + 150);
+        endDate.setMinutes(endDate.getMinutes() + 90);
         const end = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
         
-        return { install, hmcStart, hmcEnd, rdv, end };
+        return { install, hmc, rdv, end };
     }
     
     // Fonction pour générer le texte du déroulé
@@ -612,12 +605,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const locationNote = isExterior ? '(sur place)' : '(à L\'Etudiant)';
         
         return `
-            <p><strong>${schedule.install || '08:00'}</strong> : Installation du matériel ${locationNote}</p>
-            <p><strong>${schedule.hmcStart || '08:30'}</strong> : Début HMC</p>
-            <p><strong>${schedule.hmcEnd || '09:15'}</strong> : Fin HMC</p>
+            <p><strong>${schedule.install || '08:30'}</strong> : Installation du matériel ${locationNote}</p>
             <p><strong>${schedule.rdv || patTime}</strong> : Arrivée de ${guestName || 'l\'invité'}</p>
             <p style="margin-left: 80px;">- Accueil / installation / passage en loges</p>
-            <p style="margin-left: 80px;">- Tournage (entre 15 et 30 minutes)</p>
+            <p><strong>${schedule.hmc || schedule.rdv || patTime}</strong> : HMC (Habillage Maquillage Coiffure)</p>
+            <p><strong>${patTime}</strong> : Début de tournage (entre 15 et 30 minutes)</p>
             <p><strong>${schedule.end || '11:30'}</strong> : Fin de tournage et rangement</p>
         `.trim();
     }
@@ -638,8 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Récupérer les horaires personnalisés si activés
         const customTimes = isCustomSchedule ? {
             install: document.getElementById('customInstall').value,
-            hmcStart: document.getElementById('customHmcStart').value,
-            hmcEnd: document.getElementById('customHmcEnd').value,
+            hmc: document.getElementById('customHmc').value,
             rdv: document.getElementById('customRdv').value,
             end: document.getElementById('customEnd').value
         } : {};
@@ -719,8 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Récupérer les horaires personnalisés si activés
         const customTimes = isCustomSchedule ? {
             install: document.getElementById('customInstall').value,
-            hmcStart: document.getElementById('customHmcStart').value,
-            hmcEnd: document.getElementById('customHmcEnd').value,
+            hmc: document.getElementById('customHmc').value,
             rdv: document.getElementById('customRdv').value,
             end: document.getElementById('customEnd').value
         } : {};
