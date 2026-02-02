@@ -398,6 +398,26 @@ input[type="file"] {
     margin-right: 10px;
 }
 
+.manager-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-button {
+    background-color: #007aff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.edit-button:hover {
+    background-color: #0055b3;
+}
+
 .delete-button {
     background-color: #dc3545;
     color: white;
@@ -443,8 +463,16 @@ input[type="file"] {
         align-items: flex-start;
     }
     
-    .delete-button {
+    .manager-actions {
         margin-top: 8px;
         width: 100%;
+        display: flex;
+        gap: 8px;
     }
-} 
+    
+    .edit-button,
+    .delete-button {
+        flex: 1;
+        width: auto;
+    }
+}
