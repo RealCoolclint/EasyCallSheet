@@ -145,16 +145,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (e) {
                 console.warn('Impossible de parser la date:', date);
-            }
-        }
-        
-        // Responsable
+            // Responsable
         const responsable = urlParams.get('responsable');
         if (responsable) {
             const decodedResponsable = decodeURIComponent(responsable);
             document.getElementById('managerName').value = decodedResponsable;
-            
-            // Essayer de retrouver le téléphone si le responsable existe déjà
+        }
+        
+        // Téléphone (priorité au paramètre URL)
+        const telephone = urlParams.get('telephone');
+        if (telephone) {
+            document.getElementById('managerPhone').value = decodeURIComponent(telephone);
+        } else if (responsable) {
+            // Si pas de téléphone dans l'URL, essayer de le retrouver dans les responsables sauvegardés
+            const decodedResponsable = decodeURIComponent(responsable);
             const managers = getManagers();
             const existingManager = managers.find(m => 
                 m.name.toLowerCase() === decodedResponsable.toLowerCase()
@@ -163,18 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('managerPhone').value = existingManager.phone;
             }
         }
-        
-        // Téléphone (si fourni explicitement)
-        const tel = urlParams.get('tel');
-        if (tel) {
-            document.getElementById('managerPhone').value = decodeURIComponent(tel);
-        }
-        
-        // Lieu
-        const lieu = urlParams.get('lieu');
-        if (lieu && lieu.trim() !== '') {
-            const decodedLieu = decodeURIComponent(lieu);
-            document.getElementById('isExterior').checked = true;
             document.getElementById('addressField').style.display = 'block';
             document.getElementById('exteriorAddress').value = decodedLieu;
         }
