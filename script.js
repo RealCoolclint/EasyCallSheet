@@ -175,6 +175,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('addressField').style.display = 'block';
             document.getElementById('exteriorAddress').value = decodedLieu;
         }
+        
+        // Heure PAT
+        const heure = urlParams.get('heure');
+        if (heure) {
+            document.getElementById('patTime').value = decodeURIComponent(heure);
+        }
     }
     
     // Charger les paramètres URL au démarrage
