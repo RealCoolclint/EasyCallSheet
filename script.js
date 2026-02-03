@@ -449,89 +449,104 @@ document.addEventListener('DOMContentLoaded', function() {
         addManager(name, phone);
     });
     
-    // Import CSV - CORRIGÉ
-    const importCsvButton = document.getElementById('importCsvButton');
-    const csvFileInput = document.getElementById('csvFile');
+ // Import CSV - CORRIGÉ - SUPPORTE VIRGULE ET POINT-VIRGULE
+const importCsvButton = document.getElementById('importCsvButton');
+const csvFileInput = document.getElementById('csvFile');
+
+importCsvButton.addEventListener('click', function() {
+    const file = csvFileInput.files[0];
+    if (!file) {
+        alert('Veuillez sélectionner un fichier CSV');
+        return;
+    }
     
-    importCsvButton.addEventListener('click', function() {
-        const file = csvFileInput.files[0];
-        if (!file) {
-            alert('Veuillez sélectionner un fichier CSV');
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const text = e.target.result;
-                const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let text = e.target.result;
+            
+            // Détecter automatiquement le séparateur (virgule ou point-virgule)
+            const separator = text.includes(';') ? ';' : ',';
+            console.log('🔍 Séparateur détecté:', separator === ';' ? 'point-virgule (;)' : 'virgule (,)');
+            
+            // Gérer les différentes fins de ligne (Windows \r\n, Unix \n, Mac \r)
+            const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line.length > 0);
+            
+            console.log('📄 Nombre de lignes dans le CSV:', lines.length);
+            
+            let imported = 0;
+            let skipped = 0;
+            const managers = getManagers();
+            
+            lines.forEach((line, index) => {
+                // Skip la première ligne si c'est un header
+                if (index === 0 && (line.toLowerCase().includes('name') || line.toLowerCase().includes('nom'))) {
+                    console.log('⏭️ Header détecté, ligne ignorée:', line);
+                    skipped++;
+                    return;
+                }
                 
-                console.log('📄 Nombre de lignes dans le CSV:', lines.length);
+                // Parser la ligne avec le bon séparateur
+                const parts = line.split(separator).map(p => p.trim());
                 
-                let imported = 0;
-                let skipped = 0;
-                const managers = getManagers();
-                
-                lines.forEach((line, index) => {
-                    // Skip la première ligne si c'est un header (contient "name" et "phone")
-                    if (index === 0 && (line.toLowerCase().includes('name') && line.toLowerCase().includes('phone'))) {
+                // Valider qu'on a bien 2 colonnes
+                if (parts.length >= 2) {
+                    const name = parts[0].replace(/["']/g, '').trim();
+                    const phone = parts[1].replace(/["']/g, '').trim();
+                    
+                    // Ignorer si pas de nom ou pas de téléphone
+                    if (!name || !phone || phone.length < 5) {
+                        console.log('⏭️ Ligne sans téléphone valide ignorée:', line);
+                        skipped++;
+                        return;
+                    }
+                    
+                    // Vérifier que le nom ne ressemble pas à un header
+                    if (name.toLowerCase() === 'name' || name.toLowerCase() === 'nom' || 
+                        name.toLowerCase() === 'phone' || name.toLowerCase() === 'telephone') {
                         console.log('⏭️ Header détecté, ligne ignorée:', line);
                         skipped++;
                         return;
                     }
                     
-                    // Parser la ligne
-                    const parts = line.split(',').map(p => p.trim());
+                    // Vérifier si existe déjà
+                    const existingIndex = managers.findIndex(m => 
+                        m.name.toLowerCase() === name.toLowerCase()
+                    );
                     
-                    // Valider qu'on a bien 2 colonnes avec du contenu
-                    if (parts.length >= 2 && parts[0] && parts[1]) {
-                        const name = parts[0].replace(/["']/g, '').trim(); // Enlever les guillemets
-                        const phone = parts[1].replace(/["']/g, '').trim();
-                        
-                        // Vérifier que le nom ne ressemble pas à "name" ou "phone"
-                        if (name.toLowerCase() === 'name' || name.toLowerCase() === 'phone') {
-                            console.log('⏭️ Header détecté, ligne ignorée:', line);
-                            skipped++;
-                            return;
-                        }
-                        
-                        // Vérifier si existe déjà
-                        const existingIndex = managers.findIndex(m => 
-                            m.name.toLowerCase() === name.toLowerCase()
-                        );
-                        
-                        if (existingIndex === -1) {
-                            managers.push({ name, phone });
-                            imported++;
-                            console.log('✅ Importé:', name, phone);
-                        } else {
-                            console.log('⏭️ Déjà existant:', name);
-                            skipped++;
-                        }
+                    if (existingIndex === -1) {
+                        managers.push({ name, phone });
+                        imported++;
+                        console.log('✅ Importé:', name, phone);
                     } else {
-                        console.log('⚠️ Ligne invalide ignorée:', line);
+                        console.log('⏭️ Déjà existant:', name);
                         skipped++;
                     }
-                });
-                
-                if (imported > 0) {
-                    managers.sort((a, b) => a.name.localeCompare(b.name));
-                    saveManagers(managers);
-                    refreshManagersList();
-                    alert(`✅ ${imported} responsable(s) importé(s) avec succès !\n${skipped > 0 ? `⏭️ ${skipped} ligne(s) ignorée(s)` : ''}`);
                 } else {
-                    alert(`⚠️ Aucun nouveau responsable à importer.\n${skipped > 0 ? `${skipped} ligne(s) ignorée(s) (déjà existants ou headers)` : ''}`);
+                    console.log('⚠️ Ligne invalide ignorée:', line);
+                    skipped++;
                 }
-                
-                csvFileInput.value = '';
-                
-            } catch (error) {
-                alert('❌ Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
-                console.error('Erreur CSV:', error);
+            });
+            
+            if (imported > 0) {
+                managers.sort((a, b) => a.name.localeCompare(b.name));
+                saveManagers(managers);
+                refreshManagersList();
+                alert(`✅ ${imported} responsable(s) importé(s) avec succès !\n${skipped > 0 ? `⏭️ ${skipped} ligne(s) ignorée(s)` : ''}`);
+            } else {
+                alert(`⚠️ Aucun nouveau responsable à importer.\n${skipped > 0 ? `${skipped} ligne(s) ignorée(s) (déjà existants, sans téléphone, ou headers)` : ''}`);
             }
-        };
-        
-        reader.readAsText(file);
+            
+            csvFileInput.value = '';
+            
+        } catch (error) {
+            alert('❌ Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
+            console.error('Erreur CSV:', error);
+        }
+    };
+    
+    reader.readAsText(file);
+});
     });
     
     // Export CSV
