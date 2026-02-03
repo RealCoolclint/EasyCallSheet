@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addManager(name, phone);
     });
     
-    // Import CSV
+    // Import CSV - CORRIGÉ
     const importCsvButton = document.getElementById('importCsvButton');
     const csvFileInput = document.getElementById('csvFile');
     
@@ -464,16 +464,36 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.onload = function(e) {
             try {
                 const text = e.target.result;
-                const lines = text.split('\n');
-                let imported = 0;
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
                 
+                console.log('📄 Nombre de lignes dans le CSV:', lines.length);
+                
+                let imported = 0;
+                let skipped = 0;
                 const managers = getManagers();
                 
-                lines.forEach(line => {
+                lines.forEach((line, index) => {
+                    // Skip la première ligne si c'est un header (contient "name" et "phone")
+                    if (index === 0 && (line.toLowerCase().includes('name') && line.toLowerCase().includes('phone'))) {
+                        console.log('⏭️ Header détecté, ligne ignorée:', line);
+                        skipped++;
+                        return;
+                    }
+                    
+                    // Parser la ligne
                     const parts = line.split(',').map(p => p.trim());
+                    
+                    // Valider qu'on a bien 2 colonnes avec du contenu
                     if (parts.length >= 2 && parts[0] && parts[1]) {
-                        const name = parts[0];
-                        const phone = parts[1];
+                        const name = parts[0].replace(/["']/g, '').trim(); // Enlever les guillemets
+                        const phone = parts[1].replace(/["']/g, '').trim();
+                        
+                        // Vérifier que le nom ne ressemble pas à "name" ou "phone"
+                        if (name.toLowerCase() === 'name' || name.toLowerCase() === 'phone') {
+                            console.log('⏭️ Header détecté, ligne ignorée:', line);
+                            skipped++;
+                            return;
+                        }
                         
                         // Vérifier si existe déjà
                         const existingIndex = managers.findIndex(m => 
@@ -483,7 +503,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (existingIndex === -1) {
                             managers.push({ name, phone });
                             imported++;
+                            console.log('✅ Importé:', name, phone);
+                        } else {
+                            console.log('⏭️ Déjà existant:', name);
+                            skipped++;
                         }
+                    } else {
+                        console.log('⚠️ Ligne invalide ignorée:', line);
+                        skipped++;
                     }
                 });
                 
@@ -491,16 +518,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     managers.sort((a, b) => a.name.localeCompare(b.name));
                     saveManagers(managers);
                     refreshManagersList();
-                    alert(`${imported} responsable(s) importé(s) avec succès !`);
+                    alert(`✅ ${imported} responsable(s) importé(s) avec succès !\n${skipped > 0 ? `⏭️ ${skipped} ligne(s) ignorée(s)` : ''}`);
                 } else {
-                    alert('Aucun nouveau responsable à importer.');
+                    alert(`⚠️ Aucun nouveau responsable à importer.\n${skipped > 0 ? `${skipped} ligne(s) ignorée(s) (déjà existants ou headers)` : ''}`);
                 }
                 
                 csvFileInput.value = '';
                 
             } catch (error) {
-                alert('Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
-                console.error(error);
+                alert('❌ Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
+                console.error('Erreur CSV:', error);
             }
         };
         
