@@ -25,6 +25,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Définir la date du jour par défaut
     document.getElementById('date').valueAsDate = new Date();
     
+    // ===== GESTION DES RESPONSABLES - FONCTIONS UTILITAIRES =====
+    
+    // Clé pour le localStorage
+    const STORAGE_KEY = 'easyCallSheets_managers';
+    
+    // Récupérer les responsables depuis le localStorage
+    function getManagers() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    }
+    
+    // Sauvegarder les responsables dans le localStorage
+    function saveManagers(managers) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
+    }
+    
     // ===== NOUVEAU : GESTION DES PARAMÈTRES URL DEPUIS MONDAY =====
     
     /**
@@ -76,12 +92,13 @@ document.addEventListener('DOMContentLoaded', function() {
      * - format : FORMATS 2026
      * - date : Date de tournage (format YYYY-MM-DD)
      * - heure : Heure PAT (format HH:mm)
-     * - responsable : Auteurs
-     * - telephone : Téléphone du responsable
+     * - responsable : Auteurs (lookup automatique du téléphone)
      * - lieu : Lieu (optionnel)
      */
     function loadFromUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
+        
+        console.log('🔍 Chargement des paramètres URL...');
         
         // Titre (pour extraire nom et école)
         const titre = urlParams.get('titre');
@@ -89,9 +106,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const { guest, school } = extractGuestAndSchool(decodeURIComponent(titre));
             if (guest) {
                 document.getElementById('guestName').value = guest;
+                console.log('✅ Invité:', guest);
             }
             if (school) {
                 document.getElementById('schoolName').value = school;
+                console.log('✅ École:', school);
             }
         }
         
@@ -119,6 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let option of formatSelect.options) {
                 if (option.value === mappedFormat || option.text === mappedFormat) {
                     formatSelect.value = option.value;
+                    console.log('✅ Format:', mappedFormat);
                     break;
                 }
             }
@@ -143,9 +163,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (parsedDate) {
                     dateInput.value = parsedDate;
+                    console.log('✅ Date:', parsedDate);
                 }
             } catch (e) {
-                console.warn('Impossible de parser la date:', date);
+                console.warn('⚠️ Impossible de parser la date:', date);
             }
         }
         
@@ -153,28 +174,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const heure = urlParams.get('heure');
         if (heure) {
             document.getElementById('patTime').value = decodeURIComponent(heure);
+            console.log('✅ Heure PAT:', decodeURIComponent(heure));
         }
         
-        // Responsable
+        // ===== RESPONSABLE + TÉLÉPHONE (LOOKUP AUTOMATIQUE) =====
         const responsable = urlParams.get('responsable');
         if (responsable) {
-            const decodedResponsable = decodeURIComponent(responsable);
+            const decodedResponsable = decodeURIComponent(responsable).trim();
+            console.log('🔍 Recherche du responsable:', decodedResponsable);
+            
+            // Remplir le champ nom
             document.getElementById('managerName').value = decodedResponsable;
-        }
-        
-        // Téléphone (priorité au paramètre URL)
-        const telephone = urlParams.get('telephone');
-        if (telephone) {
-            document.getElementById('managerPhone').value = decodeURIComponent(telephone);
-        } else if (responsable) {
-            // Si pas de téléphone dans l'URL, essayer de le retrouver dans les responsables sauvegardés
-            const decodedResponsable = decodeURIComponent(responsable);
+            
+            // Récupérer la liste des responsables
             const managers = getManagers();
-            const existingManager = managers.find(m => 
-                m.name.toLowerCase() === decodedResponsable.toLowerCase()
-            );
-            if (existingManager) {
-                document.getElementById('managerPhone').value = existingManager.phone;
+            console.log('📋 Base de responsables:', managers);
+            
+            if (managers && managers.length > 0) {
+                // Lookup dans la base (insensible à la casse et aux espaces)
+                const existingManager = managers.find(m => 
+                    m.name.toLowerCase().trim() === decodedResponsable.toLowerCase().trim()
+                );
+                
+                if (existingManager) {
+                    document.getElementById('managerPhone').value = existingManager.phone;
+                    console.log('✅ Téléphone trouvé:', existingManager.phone);
+                } else {
+                    console.log('❌ Responsable non trouvé dans la base');
+                    console.log('💡 Noms disponibles:', managers.map(m => m.name).join(', '));
+                }
+            } else {
+                console.log('⚠️ Aucun responsable dans la base');
             }
         }
         
@@ -185,7 +215,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('isExterior').checked = true;
             document.getElementById('addressField').style.display = 'block';
             document.getElementById('exteriorAddress').value = decodedLieu;
+            console.log('✅ Lieu extérieur:', decodedLieu);
         }
+        
+        console.log('✨ Chargement des paramètres terminé');
     }
     
     // Charger les paramètres URL au démarrage
@@ -194,20 +227,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== FIN DU CODE MONDAY - REPRISE DU CODE ORIGINAL =====
     
     // ===== GESTION DES RESPONSABLES DE PROJET =====
-    
-    // Clé pour le localStorage
-    const STORAGE_KEY = 'easyCallSheets_managers';
-    
-    // Récupérer les responsables depuis le localStorage
-    function getManagers() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-    }
-    
-    // Sauvegarder les responsables dans le localStorage
-    function saveManagers(managers) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
-    }
     
     // Ajouter ou modifier un responsable
     function addManager(name, phone) {
