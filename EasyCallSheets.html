@@ -22,11 +22,11 @@
                         <div class="form-item">
                             <label for="formatType">Format</label>
                             <select id="formatType" name="formatType">
-                                <option value="L'interview">L'interview</option>
-                                <option value="L'interro">L'interro</option>
-                                <option value="C'est quoi">C'est quoi</option>
-                                <option value="Audrey T'explique">Audrey T'explique</option>
+                                <!-- Options générées dynamiquement par JavaScript -->
                             </select>
+                        </div>
+                        <div class="form-item">
+                            <button type="button" id="manageFormatsButton" class="secondary-button">Gérer les formats</button>
                         </div>
                         <div class="form-item">
                             <label for="date">Date</label>
@@ -60,12 +60,16 @@
                                 <input type="time" id="customInstall" name="customInstall">
                             </div>
                             <div class="form-item">
-                                <label for="customRdv">Heure RDV</label>
-                                <input type="time" id="customRdv" name="customRdv">
+                                <label for="customHmcStart">HMC Début</label>
+                                <input type="time" id="customHmcStart" name="customHmcStart">
                             </div>
                             <div class="form-item">
-                                <label for="customHmc">HMC</label>
-                                <input type="time" id="customHmc" name="customHmc">
+                                <label for="customHmcEnd">HMC Fin</label>
+                                <input type="time" id="customHmcEnd" name="customHmcEnd">
+                            </div>
+                            <div class="form-item">
+                                <label for="customRdv">Heure RDV</label>
+                                <input type="time" id="customRdv" name="customRdv">
                             </div>
                             <div class="form-item">
                                 <label for="customEnd">Fin de tournage</label>
@@ -156,8 +160,44 @@
         </div>
     </div>
 
+    <!-- Modal de gestion des formats -->
+    <div id="formatsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gérer les formats vidéo</h2>
+                <span class="modal-close" id="formatsModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="add-format-form">
+                    <h3>Ajouter un format</h3>
+                    <div class="form-item">
+                        <label for="newFormatName">Nom du format</label>
+                        <input type="text" id="newFormatName" placeholder="Ex: L'interview">
+                    </div>
+                    <button type="button" id="addFormatButton" class="primary-button">Ajouter</button>
+                </div>
+                <div class="import-csv-form">
+                    <h3>Importer depuis un fichier CSV</h3>
+                    <div class="form-item">
+                        <label for="formatsCsvFile">Fichier CSV</label>
+                        <input type="file" id="formatsCsvFile" accept=".csv" />
+                        <small>Format attendu : nom (une ligne par format)</small>
+                    </div>
+                    <button type="button" id="importFormatsCsvButton" class="primary-button">Importer</button>
+                </div>
+                <div class="formats-list">
+                    <h3>Formats sauvegardés</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button type="button" id="exportFormatsCsvButton" class="secondary-button">Exporter en CSV</button>
+                    </div>
+                    <ul id="formatsList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
+</html> 
