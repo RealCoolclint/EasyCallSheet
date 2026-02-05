@@ -14,6 +14,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const newManagerNameInput = document.getElementById('newManagerName');
     const newManagerPhoneInput = document.getElementById('newManagerPhone');
     const managersList = document.getElementById('managersList');
+
+    // Éléments DOM pour la gestion des formats
+    const manageFormatsButton = document.getElementById('manageFormatsButton');
+    const formatsModal = document.getElementById('formatsModal');
+    const formatsModalClose = document.getElementById('formatsModalClose');
+    const addFormatButton = document.getElementById('addFormatButton');
+    const newFormatNameInput = document.getElementById('newFormatName');
+    const formatsList = document.getElementById('formatsList');
+    const importFormatsCsvButton = document.getElementById('importFormatsCsvButton');
+    const formatsCsvFileInput = document.getElementById('formatsCsvFile');
+    const exportFormatsCsvButton = document.getElementById('exportFormatsCsvButton');
+
+    // Variable pour suivre l'édition de format en cours
+    let editingFormatIndex = null;
     
     // Variable pour suivre l'édition en cours
     let editingManagerIndex = null;
@@ -24,22 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Définir la date du jour par défaut
     document.getElementById('date').valueAsDate = new Date();
-    
-    // ===== GESTION DES RESPONSABLES - FONCTIONS UTILITAIRES =====
-    
-    // Clé pour le localStorage
-    const STORAGE_KEY = 'easyCallSheets_managers';
-    
-    // Récupérer les responsables depuis le localStorage
-    function getManagers() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-    }
-    
-    // Sauvegarder les responsables dans le localStorage
-    function saveManagers(managers) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
-    }
     
     // ===== NOUVEAU : GESTION DES PARAMÈTRES URL DEPUIS MONDAY =====
     
@@ -92,13 +90,12 @@ document.addEventListener('DOMContentLoaded', function() {
      * - format : FORMATS 2026
      * - date : Date de tournage (format YYYY-MM-DD)
      * - heure : Heure PAT (format HH:mm)
-     * - responsable : Auteurs (lookup automatique du téléphone)
+     * - responsable : Auteurs
+     * - telephone : Téléphone du responsable
      * - lieu : Lieu (optionnel)
      */
     function loadFromUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
-        
-        console.log('🔍 Chargement des paramètres URL...');
         
         // Titre (pour extraire nom et école)
         const titre = urlParams.get('titre');
@@ -106,11 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const { guest, school } = extractGuestAndSchool(decodeURIComponent(titre));
             if (guest) {
                 document.getElementById('guestName').value = guest;
-                console.log('✅ Invité:', guest);
             }
             if (school) {
                 document.getElementById('schoolName').value = school;
-                console.log('✅ École:', school);
             }
         }
         
@@ -120,25 +115,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const formatSelect = document.getElementById('formatType');
             const decodedFormat = decodeURIComponent(format);
             
-            // Mapper les formats Monday vers les options du formulaire
+            // Mapper les formats Monday vers les options du formulaire (aligné sur DEFAULT_FORMATS)
             const formatMapping = {
                 "L'interview": "L'interview",
                 "Interview": "L'interview",
                 "L'interro": "L'interro",
                 "Interro": "L'interro",
-                "C'est quoi?": "C'est quoi",
-                "C'est quoi": "C'est quoi",
-                "Audrey t'explique": "Audrey T'explique",
-                "Audrey T'explique": "Audrey T'explique"
+                "C'est quoi?": "C'est quoi?",
+                "C'est quoi": "C'est quoi?",
+                "Audrey t'explique": "Audrey t'explique",
+                "Audrey T'explique": "Audrey t'explique"
             };
-            
+
             const mappedFormat = formatMapping[decodedFormat] || decodedFormat;
-            
+
             // Chercher l'option correspondante
             for (let option of formatSelect.options) {
                 if (option.value === mappedFormat || option.text === mappedFormat) {
                     formatSelect.value = option.value;
-                    console.log('✅ Format:', mappedFormat);
                     break;
                 }
             }
@@ -163,10 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (parsedDate) {
                     dateInput.value = parsedDate;
-                    console.log('✅ Date:', parsedDate);
                 }
             } catch (e) {
-                console.warn('⚠️ Impossible de parser la date:', date);
+                console.warn('Impossible de parser la date:', date);
             }
         }
         
@@ -174,37 +167,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const heure = urlParams.get('heure');
         if (heure) {
             document.getElementById('patTime').value = decodeURIComponent(heure);
-            console.log('✅ Heure PAT:', decodeURIComponent(heure));
         }
         
-        // ===== RESPONSABLE + TÉLÉPHONE (LOOKUP AUTOMATIQUE) =====
+        // Responsable
         const responsable = urlParams.get('responsable');
         if (responsable) {
-            const decodedResponsable = decodeURIComponent(responsable).trim();
-            console.log('🔍 Recherche du responsable:', decodedResponsable);
-            
-            // Remplir le champ nom
+            const decodedResponsable = decodeURIComponent(responsable);
             document.getElementById('managerName').value = decodedResponsable;
-            
-            // Récupérer la liste des responsables
+        }
+        
+        // Téléphone (priorité au paramètre URL)
+        const telephone = urlParams.get('telephone');
+        if (telephone) {
+            document.getElementById('managerPhone').value = decodeURIComponent(telephone);
+        } else if (responsable) {
+            // Si pas de téléphone dans l'URL, essayer de le retrouver dans les responsables sauvegardés
+            const decodedResponsable = decodeURIComponent(responsable);
             const managers = getManagers();
-            console.log('📋 Base de responsables:', managers);
-            
-            if (managers && managers.length > 0) {
-                // Lookup dans la base (insensible à la casse et aux espaces)
-                const existingManager = managers.find(m => 
-                    m.name.toLowerCase().trim() === decodedResponsable.toLowerCase().trim()
-                );
-                
-                if (existingManager) {
-                    document.getElementById('managerPhone').value = existingManager.phone;
-                    console.log('✅ Téléphone trouvé:', existingManager.phone);
-                } else {
-                    console.log('❌ Responsable non trouvé dans la base');
-                    console.log('💡 Noms disponibles:', managers.map(m => m.name).join(', '));
-                }
-            } else {
-                console.log('⚠️ Aucun responsable dans la base');
+            const existingManager = managers.find(m => 
+                m.name.toLowerCase() === decodedResponsable.toLowerCase()
+            );
+            if (existingManager) {
+                document.getElementById('managerPhone').value = existingManager.phone;
             }
         }
         
@@ -215,18 +199,51 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('isExterior').checked = true;
             document.getElementById('addressField').style.display = 'block';
             document.getElementById('exteriorAddress').value = decodedLieu;
-            console.log('✅ Lieu extérieur:', decodedLieu);
         }
-        
-        console.log('✨ Chargement des paramètres terminé');
     }
-    
-    // Charger les paramètres URL au démarrage
-    loadFromUrlParams();
-    
+
     // ===== FIN DU CODE MONDAY - REPRISE DU CODE ORIGINAL =====
     
     // ===== GESTION DES RESPONSABLES DE PROJET =====
+    
+    // Clé pour le localStorage
+    const STORAGE_KEY = 'easyCallSheets_managers';
+    const FORMATS_STORAGE_KEY = 'easyCallSheets_formats';
+
+    const DEFAULT_FORMATS = [
+        "Reco",
+        "Campus Explorer",
+        "L'interview",
+        "L'interro",
+        "C'est quoi?",
+        "Anecdote",
+        "Le récit",
+        "Audrey t'explique",
+        "Micro Trottoir",
+        "Actu",
+        "Décryptage",
+        "Conseil",
+        "Au salon",
+        "Teaser",
+        "Promo",
+        "Le doc de l'Etudiant",
+        "Reportage",
+        "Study Advisor",
+        "Test",
+        "Corrigé",
+        "OPTION"
+    ];
+
+    // Récupérer les responsables depuis le localStorage
+    function getManagers() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    }
+    
+    // Sauvegarder les responsables dans le localStorage
+    function saveManagers(managers) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
+    }
     
     // Ajouter ou modifier un responsable
     function addManager(name, phone) {
@@ -352,7 +369,174 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
+    // ===== GESTION DES FORMATS - FONCTIONS UTILITAIRES =====
+
+    // Récupérer les formats depuis le localStorage
+    function getFormats() {
+        const stored = localStorage.getItem(FORMATS_STORAGE_KEY);
+        if (!stored) {
+            // Premier chargement : initialiser avec les formats par défaut
+            const defaultFormats = DEFAULT_FORMATS.map(name => ({
+                name: name,
+                duration: 90
+            }));
+            saveFormats(defaultFormats);
+            return defaultFormats;
+        }
+        return JSON.parse(stored);
+    }
+
+    // Sauvegarder les formats dans le localStorage
+    function saveFormats(formats) {
+        localStorage.setItem(FORMATS_STORAGE_KEY, JSON.stringify(formats));
+    }
+
+    // Rafraîchir le select des formats dans le formulaire
+    function refreshFormatSelect() {
+        const formatSelect = document.getElementById('formatType');
+        const currentValue = formatSelect.value;
+
+        formatSelect.innerHTML = '';
+
+        const formats = getFormats();
+        formats.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.name;
+            option.textContent = format.name;
+            formatSelect.appendChild(option);
+        });
+
+        // Restaurer la sélection précédente si elle existe encore
+        if (currentValue && formats.some(f => f.name === currentValue)) {
+            formatSelect.value = currentValue;
+        }
+    }
+
+    // Ajouter ou modifier un format
+    function addFormat(name) {
+        if (!name || name.trim() === '') {
+            alert('Veuillez saisir un nom de format');
+            return;
+        }
+
+        const formats = getFormats();
+
+        // Mode édition
+        if (editingFormatIndex !== null) {
+            formats[editingFormatIndex].name = name.trim();
+            formats.sort((a, b) => a.name.localeCompare(b.name));
+            saveFormats(formats);
+            refreshFormatsList();
+            refreshFormatSelect();
+
+            // Réinitialiser le mode édition
+            editingFormatIndex = null;
+            addFormatButton.textContent = 'Ajouter';
+            newFormatNameInput.value = '';
+            return;
+        }
+
+        // Vérifier si le format existe déjà
+        const existingIndex = formats.findIndex(f => f.name.toLowerCase() === name.trim().toLowerCase());
+        if (existingIndex !== -1) {
+            alert('Ce format existe déjà.');
+            return;
+        }
+
+        formats.push({
+            name: name.trim(),
+            duration: 90
+        });
+
+        // Trier par nom
+        formats.sort((a, b) => a.name.localeCompare(b.name));
+        saveFormats(formats);
+        refreshFormatsList();
+        refreshFormatSelect();
+
+        // Vider le champ
+        newFormatNameInput.value = '';
+    }
+
+    // Éditer un format
+    function editFormat(index) {
+        const formats = getFormats();
+        const format = formats[index];
+
+        // Remplir le champ avec le nom actuel
+        newFormatNameInput.value = format.name;
+
+        // Mettre en mode édition
+        editingFormatIndex = index;
+        addFormatButton.textContent = 'Sauvegarder';
+
+        // Scroller vers le formulaire
+        document.querySelector('.add-format-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Annuler l'édition de format
+    function cancelFormatEdit() {
+        editingFormatIndex = null;
+        addFormatButton.textContent = 'Ajouter';
+        newFormatNameInput.value = '';
+    }
+
+    // Supprimer un format
+    function deleteFormat(index) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce format ?')) {
+            const formats = getFormats();
+            formats.splice(index, 1);
+            saveFormats(formats);
+            refreshFormatsList();
+            refreshFormatSelect();
+        }
+    }
+
+    // Afficher la liste des formats dans la modal
+    function refreshFormatsList() {
+        const formats = getFormats();
+        formatsList.innerHTML = '';
+
+        if (formats.length === 0) {
+            formatsList.innerHTML = '<li class="empty-message">Aucun format sauvegardé</li>';
+            return;
+        }
+
+        formats.forEach((format, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span class="manager-info">
+                    <strong>${format.name}</strong>
+                </span>
+                <div class="manager-actions">
+                    <button type="button" class="edit-button" data-index="${index}">✏️ Modifier</button>
+                    <button type="button" class="delete-button" data-index="${index}">Supprimer</button>
+                </div>
+            `;
+            formatsList.appendChild(li);
+        });
+
+        // Ajouter les événements de modification
+        formatsList.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                editFormat(index);
+            });
+        });
+
+        // Ajouter les événements de suppression
+        formatsList.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                deleteFormat(index);
+            });
+        });
+    }
+
+    // Initialiser le select des formats au chargement (avant loadFromUrlParams)
+    refreshFormatSelect();
+
     // Autocomplétion pour le nom du responsable
     function showSuggestions(query) {
         if (!query || query.length < 1) {
@@ -449,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addManager(name, phone);
     });
     
-    // Import CSV - CORRIGÉ - SUPPORTE VIRGULE ET POINT-VIRGULE
+    // Import CSV
     const importCsvButton = document.getElementById('importCsvButton');
     const csvFileInput = document.getElementById('csvFile');
     
@@ -463,51 +647,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                let text = e.target.result;
-                
-                // Détecter automatiquement le séparateur (virgule ou point-virgule)
-                const separator = text.includes(';') ? ';' : ',';
-                console.log('🔍 Séparateur détecté:', separator === ';' ? 'point-virgule (;)' : 'virgule (,)');
-                
-                // Gérer les différentes fins de ligne (Windows \r\n, Unix \n, Mac \r)
-                const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line.length > 0);
-                
-                console.log('📄 Nombre de lignes dans le CSV:', lines.length);
-                
+                const text = e.target.result;
+                const lines = text.split('\n');
                 let imported = 0;
-                let skipped = 0;
+                
                 const managers = getManagers();
                 
-                lines.forEach((line, index) => {
-                    // Skip la première ligne si c'est un header
-                    if (index === 0 && (line.toLowerCase().includes('name') || line.toLowerCase().includes('nom'))) {
-                        console.log('⏭️ Header détecté, ligne ignorée:', line);
-                        skipped++;
-                        return;
-                    }
-                    
-                    // Parser la ligne avec le bon séparateur
-                    const parts = line.split(separator).map(p => p.trim());
-                    
-                    // Valider qu'on a bien 2 colonnes
-                    if (parts.length >= 2) {
-                        const name = parts[0].replace(/["']/g, '').trim();
-                        const phone = parts[1].replace(/["']/g, '').trim();
-                        
-                        // Ignorer si pas de nom ou pas de téléphone
-                        if (!name || !phone || phone.length < 5) {
-                            console.log('⏭️ Ligne sans téléphone valide ignorée:', line);
-                            skipped++;
-                            return;
-                        }
-                        
-                        // Vérifier que le nom ne ressemble pas à un header
-                        if (name.toLowerCase() === 'name' || name.toLowerCase() === 'nom' || 
-                            name.toLowerCase() === 'phone' || name.toLowerCase() === 'telephone') {
-                            console.log('⏭️ Header détecté, ligne ignorée:', line);
-                            skipped++;
-                            return;
-                        }
+                lines.forEach(line => {
+                    const parts = line.split(',').map(p => p.trim());
+                    if (parts.length >= 2 && parts[0] && parts[1]) {
+                        const name = parts[0];
+                        const phone = parts[1];
                         
                         // Vérifier si existe déjà
                         const existingIndex = managers.findIndex(m => 
@@ -517,14 +667,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (existingIndex === -1) {
                             managers.push({ name, phone });
                             imported++;
-                            console.log('✅ Importé:', name, phone);
-                        } else {
-                            console.log('⏭️ Déjà existant:', name);
-                            skipped++;
                         }
-                    } else {
-                        console.log('⚠️ Ligne invalide ignorée:', line);
-                        skipped++;
                     }
                 });
                 
@@ -532,16 +675,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     managers.sort((a, b) => a.name.localeCompare(b.name));
                     saveManagers(managers);
                     refreshManagersList();
-                    alert(`✅ ${imported} responsable(s) importé(s) avec succès !\n${skipped > 0 ? `⏭️ ${skipped} ligne(s) ignorée(s)` : ''}`);
+                    alert(`${imported} responsable(s) importé(s) avec succès !`);
                 } else {
-                    alert(`⚠️ Aucun nouveau responsable à importer.\n${skipped > 0 ? `${skipped} ligne(s) ignorée(s) (déjà existants, sans téléphone, ou headers)` : ''}`);
+                    alert('Aucun nouveau responsable à importer.');
                 }
                 
                 csvFileInput.value = '';
                 
             } catch (error) {
-                alert('❌ Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
-                console.error('Erreur CSV:', error);
+                alert('Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
+                console.error(error);
             }
         };
         
@@ -550,26 +693,164 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Export CSV
     const exportCsvButton = document.getElementById('exportCsvButton');
-    exportCsvButton.addEventListener('click', function() {
+        exportCsvButton.addEventListener('click', function() {
         const managers = getManagers();
-        
+
         if (managers.length === 0) {
             alert('Aucun responsable à exporter.');
             return;
         }
-        
+
         // Créer le CSV
         let csvContent = '';
         managers.forEach(manager => {
             csvContent += `${manager.name},${manager.phone}\n`;
         });
-        
+
         // Créer un blob et télécharger
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', 'responsables_easycallsheets.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    // ===== ÉVÉNEMENTS POUR LA MODAL DES FORMATS =====
+
+    // Ouvrir la modal
+    manageFormatsButton.addEventListener('click', function() {
+        refreshFormatsList();
+        formatsModal.style.display = 'block';
+    });
+
+    // Fermer la modal
+    formatsModalClose.addEventListener('click', function() {
+        formatsModal.style.display = 'none';
+        cancelFormatEdit();
+    });
+
+    window.addEventListener('click', function(event) {
+        if (event.target === formatsModal) {
+            formatsModal.style.display = 'none';
+            cancelFormatEdit();
+        }
+    });
+
+    // Ajouter un format
+    addFormatButton.addEventListener('click', function() {
+        const name = newFormatNameInput.value.trim();
+        addFormat(name);
+    });
+
+    // Permettre d'ajouter avec la touche Entrée
+    newFormatNameInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const name = newFormatNameInput.value.trim();
+            addFormat(name);
+        }
+    });
+
+    // Import CSV des formats
+    importFormatsCsvButton.addEventListener('click', function() {
+        const file = formatsCsvFileInput.files[0];
+        if (!file) {
+            alert('Veuillez sélectionner un fichier CSV');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let text = e.target.result;
+                const separator = text.includes(';') ? ';' : ',';
+                const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(line => line.length > 0);
+
+                let imported = 0;
+                let skipped = 0;
+                const formats = getFormats();
+
+                lines.forEach((line, index) => {
+                    // Skip la première ligne si c'est un header
+                    if (index === 0 && (line.toLowerCase().includes('name') || line.toLowerCase().includes('nom') || line.toLowerCase().includes('format'))) {
+                        skipped++;
+                        return;
+                    }
+
+                    const parts = line.split(separator).map(p => p.trim());
+
+                    if (parts.length >= 1) {
+                        const name = parts[0].replace(/["']/g, '').trim();
+
+                        if (!name || name.length < 2) {
+                            skipped++;
+                            return;
+                        }
+
+                        // Vérifier si existe déjà
+                        const existingIndex = formats.findIndex(f =>
+                            f.name.toLowerCase() === name.toLowerCase()
+                        );
+
+                        if (existingIndex === -1) {
+                            formats.push({
+                                name,
+                                duration: 90
+                            });
+                            imported++;
+                        } else {
+                            skipped++;
+                        }
+                    } else {
+                        skipped++;
+                    }
+                });
+
+                if (imported > 0) {
+                    formats.sort((a, b) => a.name.localeCompare(b.name));
+                    saveFormats(formats);
+                    refreshFormatsList();
+                    refreshFormatSelect();
+                    alert(`✅ ${imported} format(s) importé(s) avec succès !\n${skipped > 0 ? `⏭️ ${skipped} ligne(s) ignorée(s)` : ''}`);
+                } else {
+                    alert(`⚠️ Aucun nouveau format à importer.\n${skipped > 0 ? `${skipped} ligne(s) ignorée(s)` : ''}`);
+                }
+
+                formatsCsvFileInput.value = '';
+
+            } catch (error) {
+                alert('❌ Erreur lors de la lecture du fichier CSV.');
+                console.error('Erreur CSV:', error);
+            }
+        };
+
+        reader.readAsText(file);
+    });
+
+    // Export CSV des formats
+    exportFormatsCsvButton.addEventListener('click', function() {
+        const formats = getFormats();
+
+        if (formats.length === 0) {
+            alert('Aucun format à exporter.');
+            return;
+        }
+
+        // Créer le CSV
+        let csvContent = 'name\n';
+        formats.forEach(format => {
+            csvContent += `${format.name}\n`;
+        });
+
+        // Créer un blob et télécharger
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'formats_easycallsheets.csv');
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -971,4 +1252,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Événements
     previewButton.addEventListener('click', generatePreview);
     generatePdfButton.addEventListener('click', generatePDF);
+
+    // Charger les paramètres URL au démarrage (après init des formats pour que le select soit rempli)
+    loadFromUrlParams();
 });
