@@ -15,6 +15,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const newManagerPhoneInput = document.getElementById('newManagerPhone');
     const managersList = document.getElementById('managersList');
 
+    // Éléments DOM pour les responsables vidéo
+    const videoManagerNameInput = document.getElementById('videoManagerName');
+    const videoManagerPhoneInput = document.getElementById('videoManagerPhone');
+    const videoManagerSuggestions = document.getElementById('videoManagerSuggestions');
+    const manageVideoManagersButton = document.getElementById('manageVideoManagersButton');
+    const videoManagersModal = document.getElementById('videoManagersModal');
+    const videoManagersModalClose = document.getElementById('videoManagersModalClose');
+    const addVideoManagerButton = document.getElementById('addVideoManagerButton');
+    const newVideoManagerNameInput = document.getElementById('newVideoManagerName');
+    const newVideoManagerPhoneInput = document.getElementById('newVideoManagerPhone');
+    const videoManagersList = document.getElementById('videoManagersList');
+
     // Éléments DOM pour la gestion des formats
     const manageFormatsButton = document.getElementById('manageFormatsButton');
     const formatsModal = document.getElementById('formatsModal');
@@ -31,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Variable pour suivre l'édition en cours
     let editingManagerIndex = null;
+    let editingVideoManagerIndex = null;
     
     // Précharger l'image du logo
     const logoImg = new Image();
@@ -208,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Clé pour le localStorage
     const STORAGE_KEY = 'easyCallSheets_managers';
+    const VIDEO_MANAGERS_STORAGE_KEY = 'easyCallSheets_videoManagers';
     const FORMATS_STORAGE_KEY = 'easyCallSheets_formats';
 
     const DEFAULT_FORMATS = [
@@ -243,6 +257,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Sauvegarder les responsables dans le localStorage
     function saveManagers(managers) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(managers));
+    }
+
+    // ===== GESTION DES RESPONSABLES VIDÉO =====
+    
+    // Récupérer les responsables vidéo depuis le localStorage
+    function getVideoManagers() {
+        const stored = localStorage.getItem(VIDEO_MANAGERS_STORAGE_KEY);
+        if (!stored) {
+            // Premier chargement : initialiser avec Martin par défaut
+            const defaultVideoManagers = [
+                { name: 'Martin Pavloff', phone: '06 12 52 85 69' }
+            ];
+            saveVideoManagers(defaultVideoManagers);
+            return defaultVideoManagers;
+        }
+        return JSON.parse(stored);
+    }
+    
+    // Sauvegarder les responsables vidéo dans le localStorage
+    function saveVideoManagers(videoManagers) {
+        localStorage.setItem(VIDEO_MANAGERS_STORAGE_KEY, JSON.stringify(videoManagers));
     }
     
     // Ajouter ou modifier un responsable
@@ -293,6 +328,55 @@ document.addEventListener('DOMContentLoaded', function() {
         newManagerNameInput.value = '';
         newManagerPhoneInput.value = '';
     }
+
+    // Ajouter ou modifier un responsable vidéo
+    function addVideoManager(name, phone) {
+        if (!name || !phone) {
+            alert('Veuillez remplir tous les champs');
+            return;
+        }
+        
+        const videoManagers = getVideoManagers();
+        
+        // Mode édition
+        if (editingVideoManagerIndex !== null) {
+            videoManagers[editingVideoManagerIndex] = { name: name.trim(), phone: phone.trim() };
+            videoManagers.sort((a, b) => a.name.localeCompare(b.name));
+            saveVideoManagers(videoManagers);
+            refreshVideoManagersList();
+            
+            // Réinitialiser le mode édition
+            editingVideoManagerIndex = null;
+            addVideoManagerButton.textContent = 'Ajouter';
+            newVideoManagerNameInput.value = '';
+            newVideoManagerPhoneInput.value = '';
+            return;
+        }
+        
+        // Mode ajout normal
+        // Vérifier si le responsable existe déjà
+        const existingIndex = videoManagers.findIndex(m => m.name.toLowerCase() === name.toLowerCase());
+        if (existingIndex !== -1) {
+            if (confirm('Ce responsable vidéo existe déjà. Voulez-vous mettre à jour son numéro ?')) {
+                videoManagers[existingIndex].phone = phone;
+                saveVideoManagers(videoManagers);
+                refreshVideoManagersList();
+                return;
+            } else {
+                return;
+            }
+        }
+        
+        videoManagers.push({ name: name.trim(), phone: phone.trim() });
+        // Trier par nom
+        videoManagers.sort((a, b) => a.name.localeCompare(b.name));
+        saveVideoManagers(videoManagers);
+        refreshVideoManagersList();
+        
+        // Vider les champs
+        newVideoManagerNameInput.value = '';
+        newVideoManagerPhoneInput.value = '';
+    }
     
     // Éditer un responsable
     function editManager(index) {
@@ -310,6 +394,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Scroller vers le formulaire
         document.querySelector('.add-manager-form').scrollIntoView({ behavior: 'smooth' });
     }
+
+    // Éditer un responsable vidéo
+    function editVideoManager(index) {
+        const videoManagers = getVideoManagers();
+        const videoManager = videoManagers[index];
+        
+        // Remplir les champs avec les infos actuelles
+        newVideoManagerNameInput.value = videoManager.name;
+        newVideoManagerPhoneInput.value = videoManager.phone;
+        
+        // Mettre en mode édition
+        editingVideoManagerIndex = index;
+        addVideoManagerButton.textContent = 'Sauvegarder';
+        
+        // Scroller vers le formulaire
+        videoManagersModal.querySelector('.add-manager-form').scrollIntoView({ behavior: 'smooth' });
+    }
     
     // Annuler l'édition
     function cancelEdit() {
@@ -317,6 +418,14 @@ document.addEventListener('DOMContentLoaded', function() {
         addManagerButton.textContent = 'Ajouter';
         newManagerNameInput.value = '';
         newManagerPhoneInput.value = '';
+    }
+
+    // Annuler l'édition responsable vidéo
+    function cancelVideoManagerEdit() {
+        editingVideoManagerIndex = null;
+        addVideoManagerButton.textContent = 'Ajouter';
+        newVideoManagerNameInput.value = '';
+        newVideoManagerPhoneInput.value = '';
     }
     
     // Supprimer un responsable
@@ -326,6 +435,16 @@ document.addEventListener('DOMContentLoaded', function() {
             managers.splice(index, 1);
             saveManagers(managers);
             refreshManagersList();
+        }
+    }
+
+    // Supprimer un responsable vidéo
+    function deleteVideoManager(index) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce responsable vidéo ?')) {
+            const videoManagers = getVideoManagers();
+            videoManagers.splice(index, 1);
+            saveVideoManagers(videoManagers);
+            refreshVideoManagersList();
         }
     }
     
@@ -366,6 +485,47 @@ document.addEventListener('DOMContentLoaded', function() {
             button.addEventListener('click', function() {
                 const index = parseInt(this.getAttribute('data-index'));
                 deleteManager(index);
+            });
+        });
+    }
+
+    // Afficher la liste des responsables vidéo dans la modal
+    function refreshVideoManagersList() {
+        const videoManagers = getVideoManagers();
+        videoManagersList.innerHTML = '';
+        
+        if (videoManagers.length === 0) {
+            videoManagersList.innerHTML = '<li class="empty-message">Aucun responsable vidéo sauvegardé</li>';
+            return;
+        }
+        
+        videoManagers.forEach((manager, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span class="manager-info">
+                    <strong>${manager.name}</strong> - ${manager.phone}
+                </span>
+                <div class="manager-actions">
+                    <button type="button" class="edit-button" data-index="${index}">✏️ Modifier</button>
+                    <button type="button" class="delete-button" data-index="${index}">Supprimer</button>
+                </div>
+            `;
+            videoManagersList.appendChild(li);
+        });
+        
+        // Ajouter les événements de modification
+        videoManagersList.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                editVideoManager(index);
+            });
+        });
+        
+        // Ajouter les événements de suppression
+        videoManagersList.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                deleteVideoManager(index);
             });
         });
     }
@@ -537,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser le select des formats au chargement (avant loadFromUrlParams)
     refreshFormatSelect();
 
-    // Autocomplétion pour le nom du responsable
+    // Autocomplétion pour le nom du responsable projet
     function showSuggestions(query) {
         if (!query || query.length < 1) {
             managerSuggestions.innerHTML = '';
@@ -572,6 +732,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         managerSuggestions.style.display = 'block';
     }
+
+    // Autocomplétion pour le nom du responsable vidéo
+    function showVideoManagerSuggestions(query) {
+        if (!query || query.length < 1) {
+            videoManagerSuggestions.innerHTML = '';
+            videoManagerSuggestions.style.display = 'none';
+            return;
+        }
+        
+        const videoManagers = getVideoManagers();
+        const filtered = videoManagers.filter(manager => 
+            manager.name.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        if (filtered.length === 0) {
+            videoManagerSuggestions.innerHTML = '';
+            videoManagerSuggestions.style.display = 'none';
+            return;
+        }
+        
+        videoManagerSuggestions.innerHTML = '';
+        filtered.forEach(manager => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = `${manager.name} - ${manager.phone}`;
+            div.addEventListener('click', function() {
+                videoManagerNameInput.value = manager.name;
+                videoManagerPhoneInput.value = manager.phone;
+                videoManagerSuggestions.innerHTML = '';
+                videoManagerSuggestions.style.display = 'none';
+            });
+            videoManagerSuggestions.appendChild(div);
+        });
+        
+        videoManagerSuggestions.style.display = 'block';
+    }
     
     // Sauvegarder automatiquement quand le formulaire est soumis
     function autoSaveManager() {
@@ -596,10 +792,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // Sauvegarder automatiquement le responsable vidéo
+    function autoSaveVideoManager() {
+        const name = videoManagerNameInput.value.trim();
+        const phone = videoManagerPhoneInput.value.trim();
+        
+        if (name && phone) {
+            const videoManagers = getVideoManagers();
+            const exists = videoManagers.some(m => 
+                m.name.toLowerCase() === name.toLowerCase() && m.phone === phone
+            );
+            
+            if (!exists) {
+                // Vérifier si le nom existe déjà avec un autre numéro
+                const existingIndex = videoManagers.findIndex(m => m.name.toLowerCase() === name.toLowerCase());
+                if (existingIndex === -1) {
+                    // Nouveau responsable, l'ajouter
+                    videoManagers.push({ name, phone });
+                    videoManagers.sort((a, b) => a.name.localeCompare(b.name));
+                    saveVideoManagers(videoManagers);
+                }
+            }
+        }
+    }
     
-    // Événements pour l'autocomplétion
+    // Événements pour l'autocomplétion responsable projet
     managerNameInput.addEventListener('input', function() {
         showSuggestions(this.value);
+    });
+
+    // Événements pour l'autocomplétion responsable vidéo
+    videoManagerNameInput.addEventListener('input', function() {
+        showVideoManagerSuggestions(this.value);
     });
     
     // Fermer les suggestions quand on clique ailleurs
@@ -607,9 +832,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!managerNameInput.contains(e.target) && !managerSuggestions.contains(e.target)) {
             managerSuggestions.style.display = 'none';
         }
+        if (!videoManagerNameInput.contains(e.target) && !videoManagerSuggestions.contains(e.target)) {
+            videoManagerSuggestions.style.display = 'none';
+        }
     });
     
-    // Événements pour la modal
+    // Événements pour la modal responsables projet
     manageManagersButton.addEventListener('click', function() {
         refreshManagersList();
         managersModal.style.display = 'block';
@@ -625,6 +853,10 @@ document.addEventListener('DOMContentLoaded', function() {
             managersModal.style.display = 'none';
             cancelEdit();
         }
+        if (event.target === videoManagersModal) {
+            videoManagersModal.style.display = 'none';
+            cancelVideoManagerEdit();
+        }
     });
     
     addManagerButton.addEventListener('click', function() {
@@ -632,8 +864,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const phone = newManagerPhoneInput.value.trim();
         addManager(name, phone);
     });
+
+    // Événements pour la modal responsables vidéo
+    manageVideoManagersButton.addEventListener('click', function() {
+        refreshVideoManagersList();
+        videoManagersModal.style.display = 'block';
+    });
+
+    videoManagersModalClose.addEventListener('click', function() {
+        videoManagersModal.style.display = 'none';
+        cancelVideoManagerEdit();
+    });
+
+    addVideoManagerButton.addEventListener('click', function() {
+        const name = newVideoManagerNameInput.value.trim();
+        const phone = newVideoManagerPhoneInput.value.trim();
+        addVideoManager(name, phone);
+    });
     
-    // Import CSV
+    // Import CSV responsables projet
     const importCsvButton = document.getElementById('importCsvButton');
     const csvFileInput = document.getElementById('csvFile');
     
@@ -690,10 +939,68 @@ document.addEventListener('DOMContentLoaded', function() {
         
         reader.readAsText(file);
     });
+
+    // Import CSV responsables vidéo
+    const importVideoManagerCsvButton = document.getElementById('importVideoManagerCsvButton');
+    const videoManagerCsvFileInput = document.getElementById('videoManagerCsvFile');
+
+    importVideoManagerCsvButton.addEventListener('click', function() {
+        const file = videoManagerCsvFileInput.files[0];
+        if (!file) {
+            alert('Veuillez sélectionner un fichier CSV');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let imported = 0;
+
+                const videoManagers = getVideoManagers();
+
+                lines.forEach(line => {
+                    const parts = line.split(',').map(p => p.trim());
+                    if (parts.length >= 2 && parts[0] && parts[1]) {
+                        const name = parts[0];
+                        const phone = parts[1];
+
+                        // Vérifier si existe déjà
+                        const existingIndex = videoManagers.findIndex(m =>
+                            m.name.toLowerCase() === name.toLowerCase()
+                        );
+
+                        if (existingIndex === -1) {
+                            videoManagers.push({ name, phone });
+                            imported++;
+                        }
+                    }
+                });
+
+                if (imported > 0) {
+                    videoManagers.sort((a, b) => a.name.localeCompare(b.name));
+                    saveVideoManagers(videoManagers);
+                    refreshVideoManagersList();
+                    alert(`${imported} responsable(s) vidéo importé(s) avec succès !`);
+                } else {
+                    alert('Aucun nouveau responsable vidéo à importer.');
+                }
+
+                videoManagerCsvFileInput.value = '';
+
+            } catch (error) {
+                alert('Erreur lors de la lecture du fichier CSV. Vérifiez le format.');
+                console.error(error);
+            }
+        };
+
+        reader.readAsText(file);
+    });
     
-    // Export CSV
+    // Export CSV responsables projet
     const exportCsvButton = document.getElementById('exportCsvButton');
-        exportCsvButton.addEventListener('click', function() {
+    exportCsvButton.addEventListener('click', function() {
         const managers = getManagers();
 
         if (managers.length === 0) {
@@ -713,6 +1020,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', 'responsables_easycallsheets.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    // Export CSV responsables vidéo
+    const exportVideoManagerCsvButton = document.getElementById('exportVideoManagerCsvButton');
+    exportVideoManagerCsvButton.addEventListener('click', function() {
+        const videoManagers = getVideoManagers();
+
+        if (videoManagers.length === 0) {
+            alert('Aucun responsable vidéo à exporter.');
+            return;
+        }
+
+        // Créer le CSV
+        let csvContent = '';
+        videoManagers.forEach(manager => {
+            csvContent += `${manager.name},${manager.phone}\n`;
+        });
+
+        // Créer un blob et télécharger
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'responsables_video_easycallsheets.csv');
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -963,6 +1298,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const patTime = document.getElementById('patTime').value;
         const managerName = document.getElementById('managerName').value;
         const managerPhone = document.getElementById('managerPhone').value;
+        const videoManagerName = document.getElementById('videoManagerName').value;
+        const videoManagerPhone = document.getElementById('videoManagerPhone').value;
         const isCustomSchedule = document.getElementById('customSchedule').checked;
         const isExterior = document.getElementById('isExterior').checked;
         const exteriorAddress = document.getElementById('exteriorAddress').value;
@@ -1008,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="pdf-section">
                     <h3>CONTACTS :</h3>
                     <p>${managerName} (Responsable projet) - ${managerPhone}</p>
-                    <p>Martin Pavloff (Responsable vidéo) - 06 12 52 85 69</p>
+                    <p>${videoManagerName} (Responsable vidéo) - ${videoManagerPhone}</p>
                 </div>
                 
                 <div class="pdf-section">
@@ -1037,12 +1374,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const patTime = document.getElementById('patTime').value;
         const managerName = document.getElementById('managerName').value;
         const managerPhone = document.getElementById('managerPhone').value;
+        const videoManagerName = document.getElementById('videoManagerName').value;
+        const videoManagerPhone = document.getElementById('videoManagerPhone').value;
         const isCustomSchedule = document.getElementById('customSchedule').checked;
         const isExterior = document.getElementById('isExterior').checked;
         const exteriorAddress = document.getElementById('exteriorAddress').value;
         
         // Validation
-        if (!date || !guestName || !patTime || !managerName || !managerPhone) {
+        if (!date || !guestName || !patTime || !managerName || !managerPhone || !videoManagerName || !videoManagerPhone) {
             alert('Veuillez remplir tous les champs obligatoires.');
             return;
         }
@@ -1175,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="section">
                             <h2>CONTACTS :</h2>
                             <p>${managerName} (Responsable projet) - ${managerPhone}</p>
-                            <p>Martin Pavloff (Responsable vidéo) - 06 12 52 85 69</p>
+                            <p>${videoManagerName} (Responsable vidéo) - ${videoManagerPhone}</p>
                         </div>
                         
                         <div class="section">
@@ -1239,8 +1578,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Supprimer le message de chargement
             document.body.removeChild(loadingMessage);
             
-            // Sauvegarder automatiquement le responsable
+            // Sauvegarder automatiquement les responsables
             autoSaveManager();
+            autoSaveVideoManager();
             
         } catch (error) {
             console.error('Erreur lors de la génération du PDF:', error);
