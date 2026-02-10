@@ -60,8 +60,12 @@
                                 <input type="time" id="customInstall" name="customInstall">
                             </div>
                             <div class="form-item">
-                                <label for="customHmc">HMC</label>
-                                <input type="time" id="customHmc" name="customHmc">
+                                <label for="customHmcStart">HMC Début</label>
+                                <input type="time" id="customHmcStart" name="customHmcStart">
+                            </div>
+                            <div class="form-item">
+                                <label for="customHmcEnd">HMC Fin</label>
+                                <input type="time" id="customHmcEnd" name="customHmcEnd">
                             </div>
                             <div class="form-item">
                                 <label for="customRdv">Heure RDV</label>
@@ -87,7 +91,7 @@
                     <div class="form-group">
                         <h2>Contact</h2>
                         <div class="form-item">
-                            <label for="managerName">Responsable</label>
+                            <label for="managerName">Responsable projet</label>
                             <div class="autocomplete-wrapper">
                                 <input type="text" id="managerName" name="managerName" autocomplete="off">
                                 <div id="managerSuggestions" class="autocomplete-suggestions"></div>
@@ -98,7 +102,23 @@
                             <input type="text" id="managerPhone" name="managerPhone">
                         </div>
                         <div class="form-item">
-                            <button type="button" id="manageManagersButton" class="secondary-button">Gérer les responsables</button>
+                            <button type="button" id="manageManagersButton" class="secondary-button">Gérer les responsables projet</button>
+                        </div>
+                        
+                        <!-- NOUVEAUX CHAMPS RESPONSABLE VIDÉO -->
+                        <div class="form-item" style="margin-top: 20px;">
+                            <label for="videoManagerName">Responsable vidéo</label>
+                            <div class="autocomplete-wrapper">
+                                <input type="text" id="videoManagerName" name="videoManagerName" autocomplete="off" value="Martin Pavloff">
+                                <div id="videoManagerSuggestions" class="autocomplete-suggestions"></div>
+                            </div>
+                        </div>
+                        <div class="form-item">
+                            <label for="videoManagerPhone">Téléphone</label>
+                            <input type="text" id="videoManagerPhone" name="videoManagerPhone" value="06 12 52 85 69">
+                        </div>
+                        <div class="form-item">
+                            <button type="button" id="manageVideoManagersButton" class="secondary-button">Gérer les responsables vidéo</button>
                         </div>
                     </div>
 
@@ -116,7 +136,7 @@
         </div>
     </div>
 
-    <!-- Modal de gestion des responsables -->
+    <!-- Modal de gestion des responsables projet -->
     <div id="managersModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -151,6 +171,46 @@
                         <button type="button" id="exportCsvButton" class="secondary-button">Exporter en CSV</button>
                     </div>
                     <ul id="managersList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de gestion des responsables vidéo -->
+    <div id="videoManagersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gérer les responsables vidéo</h2>
+                <span class="modal-close" id="videoManagersModalClose">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="add-manager-form">
+                    <h3>Ajouter un responsable vidéo</h3>
+                    <div class="form-item">
+                        <label for="newVideoManagerName">Nom</label>
+                        <input type="text" id="newVideoManagerName" placeholder="Nom du responsable">
+                    </div>
+                    <div class="form-item">
+                        <label for="newVideoManagerPhone">Téléphone</label>
+                        <input type="text" id="newVideoManagerPhone" placeholder="Numéro de téléphone">
+                    </div>
+                    <button type="button" id="addVideoManagerButton" class="primary-button">Ajouter</button>
+                </div>
+                <div class="import-csv-form">
+                    <h3>Importer depuis un fichier CSV</h3>
+                    <div class="form-item">
+                        <label for="videoManagerCsvFile">Fichier CSV</label>
+                        <input type="file" id="videoManagerCsvFile" accept=".csv" />
+                        <small>Format attendu : nom,téléphone (une ligne par responsable)</small>
+                    </div>
+                    <button type="button" id="importVideoManagerCsvButton" class="primary-button">Importer</button>
+                </div>
+                <div class="managers-list">
+                    <h3>Responsables vidéo sauvegardés</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button type="button" id="exportVideoManagerCsvButton" class="secondary-button">Exporter en CSV</button>
+                    </div>
+                    <ul id="videoManagersList"></ul>
                 </div>
             </div>
         </div>
