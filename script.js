@@ -1499,12 +1499,35 @@ document.addEventListener('DOMContentLoaded', function() {
         return timeString;
     }
     
+    function getCustomScheduleTimes() {
+        const get = (id) => document.getElementById(id);
+        return {
+            install: get('customInstall')?.value || '',
+            hmcStart: get('customHmcStart')?.value || '',
+            hmcEnd: get('customHmcEnd')?.value || '',
+            rdv: get('customRdv')?.value || '',
+            end: get('customEnd')?.value || ''
+        };
+    }
+
+    function formatHmcTime(schedule, patTime) {
+        if (schedule.hmcStart && schedule.hmcEnd) {
+            return schedule.hmcStart === schedule.hmcEnd
+                ? schedule.hmcStart
+                : `${schedule.hmcStart} - ${schedule.hmcEnd}`;
+        }
+        if (schedule.hmcStart) return schedule.hmcStart;
+        if (schedule.hmcEnd) return schedule.hmcEnd;
+        return schedule.hmc || schedule.rdv || patTime;
+    }
+
     // Fonction pour calculer les horaires par défaut
     function calculateSchedule(patTime, isCustom, customTimes) {
         if (isCustom && customTimes.install) {
             return {
                 install: customTimes.install,
-                hmc: customTimes.hmc,
+                hmcStart: customTimes.hmcStart,
+                hmcEnd: customTimes.hmcEnd,
                 rdv: customTimes.rdv,
                 end: customTimes.end
             };
@@ -1542,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return `
             <p><strong>${schedule.install || '08:30'}</strong> : Installation</p>
             <p><strong>${schedule.rdv || patTime}</strong> : Arrivée ${guestName || '[Nom de l\'invité]'}</p>
-            <p><strong>${schedule.hmc || schedule.rdv || patTime}</strong> : HMC (Habillage Maquillage Coiffure) - Au besoin</p>
+            <p><strong>${formatHmcTime(schedule, patTime)}</strong> : HMC (Habillage Maquillage Coiffure) - Au besoin</p>
             <p><strong>${patTime}</strong> : Début de tournage</p>
             <p><strong>${schedule.end || '11:30'}</strong> : Fin de tournage et rangement</p>
         `.trim();
@@ -1563,15 +1586,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const isExterior = document.getElementById('isExterior').checked;
         const exteriorAddress = document.getElementById('exteriorAddress').value;
         
-        // Récupérer les horaires personnalisés si activés
-        const customTimes = isCustomSchedule ? {
-            install: document.getElementById('customInstall').value,
-            hmc: document.getElementById('customHmc').value,
-            rdv: document.getElementById('customRdv').value,
-            end: document.getElementById('customEnd').value
-        } : {};
-        
-        const schedule = calculateSchedule(patTime, isCustomSchedule, customTimes);
+        const schedule = calculateSchedule(patTime, isCustomSchedule, isCustomSchedule ? getCustomScheduleTimes() : {});
         
         // Générer le HTML de l'aperçu
         const previewHTML = `
@@ -1645,15 +1660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Récupérer les horaires personnalisés si activés
-        const customTimes = isCustomSchedule ? {
-            install: document.getElementById('customInstall').value,
-            hmc: document.getElementById('customHmc').value,
-            rdv: document.getElementById('customRdv').value,
-            end: document.getElementById('customEnd').value
-        } : {};
-        
-        const schedule = calculateSchedule(patTime, isCustomSchedule, customTimes);
+        const schedule = calculateSchedule(patTime, isCustomSchedule, isCustomSchedule ? getCustomScheduleTimes() : {});
         
         // Nom du fichier
         const fileName = `CallSheet_${formatType.replace(/'/g, '')}_${guestName.replace(/\s+/g, '_')}_${date}.pdf`;
