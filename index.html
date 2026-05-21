@@ -308,13 +308,14 @@
     <!-- SCRIPTS                                             -->
     <!-- ═══════════════════════════════════════════════════ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="version.js"></script>
     <script src="script.js"></script>
 
     <!-- Version dynamique + Mercury Opening -->
     <script>
     (function () {
-        // ── Version ──────────────────────────────────────
-        var APP_VERSION = 'V1.30.03.26';
+        // ── Version (source : version.js) ────────────────
+        var APP_VERSION = window.APP_VERSION || 'V1.30.00.00';
         var verEl = document.getElementById('mercury-version');
         if (verEl) verEl.textContent = APP_VERSION;
         var badgeEl = document.getElementById('app-version-display');
