@@ -4,7 +4,7 @@
    V1.30.21.05.26 · dépendance : tranquility-core.css
 ═══════════════════════════════════════════════════════════ */
 
-/* ── Tokens CSS Launcher V2 (source de vérité) ─────────── */
+/* ── Tokens CSS — alignés sur tranquility-core.css (source de vérité) ─── */
 :root {
     --bg-primary:     #0a0f1e;
     --bg-secondary:   #0f172a;
@@ -13,7 +13,7 @@
     --text-primary:   #f0f4ff;
     --text-secondary: #94a3b8;
     --text-muted:     #64748b;
-    --accent:         #3b82f6;
+    --accent:         #2563eb;
     --success:        #10b981;
     --warning:        #f59e0b;
     --error:          #ef4444;
@@ -22,9 +22,9 @@
     --radius-lg:      16px;
     --radius-md:      10px;
     --radius-sm:      6px;
-    --shadow-md:      0 4px 20px rgba(0,0,0,0.4);
-    --shadow-lg:      0 8px 40px rgba(0,0,0,0.6);
-    --transition:     0.2s ease;
+    --shadow-md:      0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg:      0 8px 32px rgba(0, 0, 0, 0.6);
+    --transition:     250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -318,7 +318,7 @@ input[type="date"]:focus,
 select:focus,
 textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 select {
